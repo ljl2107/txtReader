@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TXT 文件阅读器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        label,
+        input,
+        button {
+            margin: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            text-align: left;
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 20px auto;
+            width: 80%;
+            background-color: #fff;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            font-size: 14px;
+        }
+
+        #contentDiv {
+            display: none;
+            margin-top: 20px;
+        }
+
+        #totalPages {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        #fontSizeInput {
+            width: 60px;
+        }
+
+        #backgroundColorSelect {
+            padding: 6px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>TXT 文件阅读器</h1>
+    <label for="fileInput">文件绝对路径：</label>
+    <input type="text" id="fileInput">
+    <label for="page">页码：</label>
+    <input type="number" id="page" value="1" min="1">
+    <label for="perPage">每页行数：</label>
+    <input type="number" id="perPage" value="10" min="1">
+    <button onclick="fetchContent()">读取内容</button>
+    <button id="prevPageBtn" onclick="prevPage()">上一页</button>
+    <button id="nextPageBtn" onclick="nextPage()">下一页</button>
+    <input type="number" id="fontSizeInput" value="16" min="10" max="30">
+    <button onclick="changeFont()">改变字体大小</button>
+    <label for="backgroundColorSelect">选择背景颜色：</label>
+    <select id="backgroundColorSelect">
+        <option value="white">白色</option>
+        <option value="lightgray">浅灰色</option>
+        <option value="beige">米色</option>
+        <option value="aliceblue">淡蓝色（Alice Blue）</option>
+        <option value="lavender">淡紫色（Lavender）</option>
+        <option value="lemonchiffon">柠檬绸色（Lemon Chiffon）</option>
+        <option value="palegoldenrod">淡金黄色（Pale Goldenrod）</option>
+    </select>
+    <button onclick="changeBackgroundColor()">改变背景颜色</button>
+    <div id="contentDiv">
+        <pre id="content"></pre>
+        <p>总页数：<span id="totalPages"></span></p>
+    </div>
+    <script>
+        let currentPage = 1;
+
+        async function fetchContent() {
+            const page = parseInt(document.getElementById('page').value);
+            const perPage = parseInt(document.getElementById('perPage').value);
+            const filepath = document.getElementById('fileInput').value;
+
+            try {
+                const response = await fetch('http://localhost:8088/read-txt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        page: page,
+                        per_page: perPage,
+                        f_path: filepath
+                    })
+                });
+                const data = await response.json();
+                if (data.error!= null) {
+                    document.getElementById('content').innerText = data.error;
+                    document.getElementById('totalPages').innerText = 0;
+                    document.getElementById('contentDiv').style.display = 'block';
+                } else {
+                    document.getElementById('content').innerText = data.content;
+                    document.getElementById('totalPages').innerText = data.total_pages;
+                    document.getElementById('contentDiv').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('请求出错：', error);
+                alert('读取文件内容出错，请检查后端服务是否正常以及输入参数是否正确');
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                document.getElementById('page').value = currentPage;
+                fetchContent();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = parseInt(document.getElementById('totalPages').textContent);
+            if (currentPage < totalPages) {
+                currentPage++;
+                document.getElementById('page').value = currentPage;
+                fetchContent();
+            }
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowLeft') {
+                prevPage();
+            } else if (event.key === 'ArrowRight') {
+                nextPage();
+            }
+        });
+
+        function changeFont() {
+            const fontSize = document.getElementById('fontSizeInput').value + 'px';
+            const contentDiv = document.getElementById('content');
+            contentDiv.style.fontSize = fontSize;
+        }
+
+        function changeBackgroundColor() {
+            const backgroundColor = document.getElementById('backgroundColorSelect').value;
+            document.body.style.backgroundColor = backgroundColor;
+        }
+    </script>
+</body>
+
+</html>
